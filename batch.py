@@ -1,5 +1,6 @@
 import time
 import pandas as pd
+from safe_web import normalize_domain
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from intel import (
     get_tech_stack,
@@ -10,8 +11,10 @@ from intel import (
 
 def scan_one(row):
     """Scan a single company row. Expects dict with 'company' and 'domain'."""
-    company = str(row.get("company", "")).strip()
-    domain = str(row.get("domain", "")).strip()
+    raw_company = row.get("company", "")
+    raw_domain = row.get("domain", "")
+    company = "" if pd.isna(raw_company) else str(raw_company).strip()
+    domain = "" if pd.isna(raw_domain) else str(raw_domain).strip()
     if not company or not domain:
         return {
             "company": company,
@@ -20,6 +23,7 @@ def scan_one(row):
         }
 
     try:
+        domain = normalize_domain(domain)
         tech = get_tech_stack(domain)
         hiring = get_hiring_signals(company, domain)
         firm = get_firmographics(company, domain)
@@ -36,7 +40,7 @@ def scan_one(row):
         "employees": firm.get("employees_mentioned", ""),
         "revenue": firm.get("revenue_mentioned", ""),
         "linkedin": firm.get("linkedin_search", ""),
-        "error": "",
+        "error": tech.get("error", ""),
     }
 
 
