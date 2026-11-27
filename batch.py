@@ -65,7 +65,11 @@ def scan_one(row):
         "linkedin": firm.get("linkedin_search", ""),
         "ats_detected": signals.get("ats_detected") or "",
         "ats_jobs_scanned": signals.get("jobs_scanned"),
+        "ats_identity": signals.get("ats_identity") or ("inferred" if signals.get("ats_detected") else "not found"),
+        "ats_source_url": signals.get("ats_source_url", ""),
+        "ats_coverage": signals.get("ats_coverage", ""),
         "ats_status": ("error" if ats_error else
+                       "board found (website-linked)" if signals.get("ats_identity") == "website-linked" else
                        "board found (unverified identity)" if signals.get("ats_detected")
                        else "no public board found"),
         **{("embedded_signals" if category == "Embedded" else f"{category.lower()}_vendors"): ", ".join(sorted(findings.get(category, {})))

@@ -46,7 +46,7 @@ if report:
 
     st.subheader("📢 Hiring Signals")
     hs = report["hiring_signals"]
-    st.metric("Open roles found", hs["open_roles_found"])
+    st.metric("Remotive matching roles (sample)", hs["open_roles_found"])
     if hs.get("plm_cad_keywords_in_jobs"):
         st.success(f"PLM/CAD keywords in jobs: {', '.join(hs['plm_cad_keywords_in_jobs'])}")
     if hs.get("sample_roles"):
@@ -60,10 +60,13 @@ if report:
     st.subheader("🔬 Technographic Signals")
     tg = report.get("technographics", {})
     st.caption(f"ATS detected: **{tg.get('ats_detected') or 'none'}** · Jobs scanned: **{tg.get('jobs_scanned', 0)}**")
+    st.caption(f"Board identity: {tg.get('ats_identity', 'inferred')} · Coverage: {tg.get('ats_coverage', 'unknown')}")
+    if tg.get("ats_source_url"):
+        st.write("Board discovery source:", tg["ats_source_url"])
     from_jobs = tg.get("from_jobs", {})
     if from_jobs:
         st.markdown("**From job postings (mentions, not confirmed installed software):**")
-        st.caption("ATS identity is inferred. Verify the employer and the context of each mention.")
+        st.caption("Verify the employer and the context of each mention; a website link is association evidence, not proof of ownership.")
         for category, vendors in from_jobs.items():
             with st.expander(f"📋 {category} — {len(vendors)} signal(s)"):
                 for vendor, evidence in vendors.items():

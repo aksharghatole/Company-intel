@@ -1,6 +1,8 @@
 import re, requests, time, uuid
 from html import unescape
 from bs4 import BeautifulSoup
+from ats_providers import (fetch_workable, fetch_recruitee, fetch_smartrecruiters,
+                           discover_board_links, valid_slug)
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; IntelBot/1.0)"}
 
@@ -26,16 +28,19 @@ def _bust():
 
 
 def guess_slugs(company, domain):
-    base = domain.split(".")[0].lower()
-    name = company.lower().replace(" ", "").replace(",", "").replace(".", "")
-    return list(dict.fromkeys([base, name, base.replace("-", ""), name.replace("-", "")]))
+    base = domain.lower().removeprefix("www.").split(".")[0]
+    name = re.sub(r"[^a-z0-9_-]", "", company.lower())
+    return [slug for slug in dict.fromkeys([base, name, base.replace("-", ""), name.replace("-", "")])
+            if valid_slug(slug)]
 
 
 def fetch_greenhouse(slug):
+    if not valid_slug(slug):
+        return None
     try:
         r = requests.get(
             f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true&{_bust()}",
-            timeout=10)
+            timeout=6, allow_redirects=False)
         if r.status_code == 200:
             return [{
                 "title": j.get("title", ""),
@@ -48,9 +53,11 @@ def fetch_greenhouse(slug):
 
 
 def fetch_lever(slug):
+    if not valid_slug(slug):
+        return None
     try:
         r = requests.get(f"https://api.lever.co/v0/postings/{slug}?mode=json&{_bust()}",
-                         timeout=10)
+                         timeout=6, allow_redirects=False)
         if r.status_code == 200:
             return [{
                 "title": j.get("text", ""),
@@ -64,10 +71,12 @@ def fetch_lever(slug):
 
 
 def fetch_ashby(slug):
+    if not valid_slug(slug):
+        return None
     try:
         r = requests.get(
             f"https://api.ashbyhq.com/posting-api/job-board/{slug}?{_bust()}",
-            timeout=10)
+            timeout=6, allow_redirects=False)
         if r.status_code == 200:
             return [{
                 "title": j.get("title", ""),
@@ -79,16 +88,31 @@ def fetch_ashby(slug):
     return None
 
 
-def fetch_jobs_free(company, domain):
-    slugs = guess_slugs(company, domain)
-    for slug in slugs[:2]:
-        for name, fn in [("greenhouse", fetch_greenhouse),
-                         ("lever", fetch_lever),
-                         ("ashby", fetch_ashby)]:
-            jobs = fn(slug)
+def discover_jobs(company, domain):
+    providers = {"greenhouse": fetch_greenhouse, "lever": fetch_lever, "ashby": fetch_ashby,
+                 "workable": fetch_workable, "recruitee": fetch_recruitee,
+                 "smartrecruiters": fetch_smartrecruiters}
+    tried = set()
+    for name, slug, source in discover_board_links(domain):
+        tried.add((name, slug.lower()))
+        jobs = providers[name](slug)
+        if jobs is not None:
+            return jobs, f"{name}:{slug}", "website-linked", source
+    # Guessed accounts are explicitly unverified. An empty guessed board is
+    # insufficient evidence of company identity.
+    for slug in guess_slugs(company, domain)[:2]:
+        for name, fetcher in providers.items():
+            if (name, slug.lower()) in tried:
+                continue
+            jobs = fetcher(slug)
             if jobs:
-                return jobs, f"{name}:{slug}"
-    return [], None
+                return jobs, f"{name}:{slug}", "inferred", ""
+    return [], None, "not found", ""
+
+
+def fetch_jobs_free(company, domain):
+    jobs, ats, _, _ = discover_jobs(company, domain)
+    return jobs, ats
 
 
 # Canonical names with carefully bounded alternative spellings.
@@ -166,10 +190,13 @@ def summarize_evidence(findings):
 
 
 def scan_technographics_free(company, domain):
-    jobs, ats = fetch_jobs_free(company, domain)
+    jobs, ats, identity, source = discover_jobs(company, domain)
     findings = scan_jobs_for_tech(jobs)
     return {
         "ats_detected": ats,
+        "ats_identity": identity,
+        "ats_source_url": source,
+        "ats_coverage": "sample (up to 12 detailed jobs)" if (ats or "").startswith("smartrecruiters:") else "returned public jobs",
         "jobs_scanned": len(jobs),
         "from_jobs": findings,
         "evidence_summary": summarize_evidence(findings),
