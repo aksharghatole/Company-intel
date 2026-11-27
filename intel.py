@@ -1,6 +1,7 @@
 import re, json, requests, time, uuid
 from bs4 import BeautifulSoup
 from technographics import scan_technographics_free
+from safe_web import normalize_domain, safe_request
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; IntelBot/1.0)"}
 
@@ -18,11 +19,7 @@ def _fetch(url, timeout=15, use_head=False):
         "Pragma": "no-cache",
         "Expires": "0",
     }
-    if use_head:
-        return requests.head(busted_url, headers=headers, timeout=timeout,
-                             allow_redirects=True)
-    return requests.get(busted_url, headers=headers, timeout=timeout,
-                        allow_redirects=True)
+    return safe_request(busted_url, headers=headers, timeout=timeout, use_head=use_head)
 
 
 def get_tech_stack(domain):
@@ -215,6 +212,10 @@ def plm_cad_search_links(company):
 
 
 def run(company, domain):
+    company = str(company).strip()
+    if not company:
+        raise ValueError("Enter a company name.")
+    domain = normalize_domain(domain)
     return {
         "company": company,
         "domain": domain,

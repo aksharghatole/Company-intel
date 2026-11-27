@@ -21,9 +21,13 @@ with col2:
 
 if st.button("Run Scan", type="primary"):
     with st.spinner("Scanning... this can take 30–60 seconds"):
-        st.session_state["report"] = run(company, domain)
-        st.session_state["last_company"] = company
-        st.session_state["last_domain"] = domain
+        try:
+            st.session_state["report"] = run(company, domain)
+            st.session_state["last_company"] = company
+            st.session_state["last_domain"] = domain
+        except ValueError as exc:
+            st.session_state.pop("report", None)
+            st.error(str(exc))
 
 report = st.session_state.get("report")
 
@@ -35,6 +39,8 @@ if report:
         st.write(", ".join(detected))
     else:
         st.write("None detected")
+    if ts.get("error"):
+        st.warning(f"Website scan failed: {ts['error']}")
     if ts.get("http_status"):
         st.caption(f"HTTP {ts['http_status']} · {ts.get('html_length', 0):,} chars · {ts.get('final_url','')}")
 
