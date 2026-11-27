@@ -1,6 +1,7 @@
 import re, requests, time, uuid
 from html import unescape
 from bs4 import BeautifulSoup
+from workday import fetch_workday, board_url
 from ats_providers import (fetch_workable, fetch_recruitee, fetch_smartrecruiters,
                            discover_board_links, valid_slug)
 
@@ -88,26 +89,42 @@ def fetch_ashby(slug):
     return None
 
 
-def discover_jobs(company, domain):
+def _discover_jobs(company, domain):
     providers = {"greenhouse": fetch_greenhouse, "lever": fetch_lever, "ashby": fetch_ashby,
                  "workable": fetch_workable, "recruitee": fetch_recruitee,
                  "smartrecruiters": fetch_smartrecruiters}
     tried = set()
+    unavailable = None
     for name, slug, source in discover_board_links(domain):
         tried.add((name, slug.lower()))
+        if name == "workday":
+            jobs, status, total = fetch_workday(slug)
+            result = (jobs or [], f"{name}:{slug}", "website-linked", source,
+                      {"ats_access": status, "ats_board_url": board_url(slug),
+                       "ats_total_reported": total})
+            if jobs is not None:
+                return result
+            if unavailable is None:
+                unavailable = result
+            continue
         jobs = providers[name](slug)
         if jobs is not None:
-            return jobs, f"{name}:{slug}", "website-linked", source
-    # Guessed accounts are explicitly unverified. An empty guessed board is
-    # insufficient evidence of company identity.
+            return jobs, f"{name}:{slug}", "website-linked", source, {"ats_access": "available"}
+    # Do not replace a known but inaccessible board with an unverified guess.
+    if unavailable is not None:
+        return unavailable
     for slug in guess_slugs(company, domain)[:2]:
         for name, fetcher in providers.items():
             if (name, slug.lower()) in tried:
                 continue
             jobs = fetcher(slug)
             if jobs:
-                return jobs, f"{name}:{slug}", "inferred", ""
-    return [], None, "not found", ""
+                return jobs, f"{name}:{slug}", "inferred", "", {"ats_access": "available"}
+    return [], None, "not found", "", {"ats_access": "not found"}
+
+
+def discover_jobs(company, domain):
+    return _discover_jobs(company, domain)[:4]
 
 
 def fetch_jobs_free(company, domain):
@@ -190,13 +207,16 @@ def summarize_evidence(findings):
 
 
 def scan_technographics_free(company, domain):
-    jobs, ats, identity, source = discover_jobs(company, domain)
+    jobs, ats, identity, source, metadata = _discover_jobs(company, domain)
     findings = scan_jobs_for_tech(jobs)
     return {
         "ats_detected": ats,
         "ats_identity": identity,
         "ats_source_url": source,
-        "ats_coverage": "sample (up to 12 detailed jobs)" if (ats or "").startswith("smartrecruiters:") else "returned public jobs",
+        **metadata,
+        "ats_coverage": ("first listing page, up to 12 detailed jobs" if (ats or "").startswith("workday:") else
+                         "sample (up to 12 detailed jobs)" if (ats or "").startswith("smartrecruiters:") else
+                         "returned public jobs"),
         "jobs_scanned": len(jobs),
         "from_jobs": findings,
         "evidence_summary": summarize_evidence(findings),

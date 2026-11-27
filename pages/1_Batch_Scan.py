@@ -68,7 +68,7 @@ if uploaded is not None:
     results = st.session_state.get("batch_results")
     if results is not None:
         st.subheader("Results")
-        st.caption("ATS boards are inferred from company names/domains; verify job evidence before treating a vendor mention as confirmed software use.")
+        st.caption("ATS boards may be website-linked or inferred. Verify job evidence; limited or restricted access does not establish absence of signals.")
         st.dataframe(results.drop(columns=["job_evidence_json"], errors="ignore"), use_container_width=True)
 
         csv_bytes = results_to_csv_bytes(results)

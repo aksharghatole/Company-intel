@@ -68,7 +68,11 @@ def scan_one(row):
         "ats_identity": signals.get("ats_identity") or ("inferred" if signals.get("ats_detected") else "not found"),
         "ats_source_url": signals.get("ats_source_url", ""),
         "ats_coverage": signals.get("ats_coverage", ""),
+        "ats_access": signals.get("ats_access", ""),
+        "ats_board_url": signals.get("ats_board_url", ""),
+        "ats_total_reported": signals.get("ats_total_reported"),
         "ats_status": ("error" if ats_error else
+                       f"board found ({signals['ats_access']})" if signals.get("ats_detected") and signals.get("ats_access") not in (None, "", "available") else
                        "board found (website-linked)" if signals.get("ats_identity") == "website-linked" else
                        "board found (unverified identity)" if signals.get("ats_detected")
                        else "no public board found"),
