@@ -42,7 +42,9 @@ def scan_one(row):
     findings = signals.get("from_jobs", {})
     evidence = [
         {"category": category, "vendor": vendor,
-         "job_title": item.get("job_title", ""), "url": item.get("url", "")}
+         "job_title": item.get("job_title", ""), "url": item.get("url", ""),
+         "matched_term": item.get("matched_term", ""), "snippet": item.get("snippet", ""),
+         "strength": signals.get("evidence_summary", {}).get(category, {}).get(vendor, {}).get("strength", "")}
         for category, vendors in sorted(findings.items())
         for vendor, items in sorted(vendors.items())
         for item in items
@@ -66,7 +68,7 @@ def scan_one(row):
         "ats_status": ("error" if ats_error else
                        "board found (unverified identity)" if signals.get("ats_detected")
                        else "no public board found"),
-        **{f"{category.lower()}_vendors": ", ".join(sorted(findings.get(category, {})))
+        **{("embedded_signals" if category == "Embedded" else f"{category.lower()}_vendors"): ", ".join(sorted(findings.get(category, {})))
            for category in TECH_TAXONOMY},
         "evidence_count": len(evidence),
         "job_evidence_json": json.dumps(evidence, ensure_ascii=False),
@@ -122,7 +124,7 @@ def evidence_dataframe(df):
             continue
         for evidence in json.loads(raw):
             rows.append({"company": row.get("company"), "domain": row.get("domain"), **evidence})
-    return pd.DataFrame(rows, columns=["company", "domain", "category", "vendor", "job_title", "url"])
+    return pd.DataFrame(rows, columns=["company", "domain", "category", "vendor", "job_title", "url", "matched_term", "snippet", "strength"])
 
 
 def results_to_csv_bytes(df: pd.DataFrame) -> bytes:

@@ -62,15 +62,21 @@ if report:
     st.caption(f"ATS detected: **{tg.get('ats_detected') or 'none'}** · Jobs scanned: **{tg.get('jobs_scanned', 0)}**")
     from_jobs = tg.get("from_jobs", {})
     if from_jobs:
-        st.markdown("**From job postings (highest confidence):**")
+        st.markdown("**From job postings (mentions, not confirmed installed software):**")
+        st.caption("ATS identity is inferred. Verify the employer and the context of each mention.")
         for category, vendors in from_jobs.items():
-            with st.expander(f"📋 {category} — {len(vendors)} vendor(s)"):
+            with st.expander(f"📋 {category} — {len(vendors)} signal(s)"):
                 for vendor, evidence in vendors.items():
                     st.markdown(f"**{vendor}**")
+                    strength = tg.get("evidence_summary", {}).get(category, {}).get(vendor, {})
+                    if strength:
+                        st.caption(strength.get("strength", ""))
                     for e in evidence[:5]:
                         st.markdown(f"  - [{e['job_title']}]({e['url']})")
+                        if e.get("snippet"):
+                            st.text(e["snippet"])
     else:
-        st.write("No vendor mentions found in public job postings.")
+        st.write("No matching engineering or software mentions found in public job postings.")
 
     st.subheader("🏢 Firmographics")
     fg = report["firmographics"]
