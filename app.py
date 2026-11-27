@@ -63,6 +63,13 @@ if report:
     st.caption(f"Board identity: {tg.get('ats_identity', 'inferred')} · Coverage: {tg.get('ats_coverage', 'unknown')}")
     if tg.get("ats_source_url"):
         st.write("Board discovery source:", tg["ats_source_url"])
+    if tg.get("ats_board_url"):
+        st.write("Public careers board:", tg["ats_board_url"])
+    access = tg.get("ats_access", "unknown")
+    if access not in ("available", "unknown", "not found"):
+        st.warning(f"ATS access: {access}. Review the careers board manually; results may be incomplete.")
+    if tg.get("ats_total_reported") is not None:
+        st.caption(f"Board-reported listings: {tg['ats_total_reported']} (not all scanned)")
     from_jobs = tg.get("from_jobs", {})
     if from_jobs:
         st.markdown("**From job postings (mentions, not confirmed installed software):**")
@@ -79,7 +86,7 @@ if report:
                         if e.get("snippet"):
                             st.text(e["snippet"])
     else:
-        st.write("No matching engineering or software mentions found in public job postings.")
+        st.write("No matching mentions in the jobs successfully scanned." if tg.get("jobs_scanned") else "No job descriptions were scanned; this does not establish an absence of signals.")
 
     st.subheader("🏢 Firmographics")
     fg = report["firmographics"]

@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from safe_web import safe_request
+from workday import parse_workday_board
 
 SLUG = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; IntelBot/1.0)"}
@@ -117,6 +118,9 @@ def parse_board_link(url):
         parts = [part for part in p.path.split("/") if part]
     except ValueError:
         return None
+    workday = parse_workday_board(url)
+    if workday:
+        return "workday", workday
     hosts = {"boards.greenhouse.io": "greenhouse", "job-boards.greenhouse.io": "greenhouse",
              "jobs.lever.co": "lever", "jobs.ashbyhq.com": "ashby",
              "jobs.smartrecruiters.com": "smartrecruiters", "careers.smartrecruiters.com": "smartrecruiters",
@@ -140,14 +144,14 @@ def discover_board_links(domain):
     for path in ("/careers", "/"):
         try:
             response = safe_request(f"https://{domain}{path}", headers=HEADERS, timeout=5)
-            if response.status_code != 200:
-                continue
             final_host = urlsplit(response.url).hostname
             if final_host not in allowed:
                 # A redirect to the board itself is evidence of association.
                 board = parse_board_link(response.url)
                 if board:
                     found.append((*board, f"https://{domain}{path}"))
+                continue
+            if response.status_code != 200:
                 continue
             soup = BeautifulSoup(response.text, "html.parser")
             for tag in soup.find_all(["a", "iframe"]):
