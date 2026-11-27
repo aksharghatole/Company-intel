@@ -34,6 +34,9 @@ if uploaded is not None:
         st.error(f"CSV must have columns: {required}. Found: {list(df.columns)}")
         st.stop()
 
+    if df.empty:
+        st.warning("Upload at least one company.")
+        st.stop()
     st.success(f"Loaded {len(df)} companies.")
     st.dataframe(df.head(10), use_container_width=True)
 
@@ -41,7 +44,14 @@ if uploaded is not None:
     with col1:
         max_workers = st.slider("Concurrent workers", 1, 10, 5)
     with col2:
-        delay = st.slider("Delay between requests (s)", 0.0, 2.0, 0.3, 0.1)
+        delay = st.slider("Pause between companies per worker (s)", 0.0, 2.0, 0.3, 0.1)
+
+    # Bind results to the uploaded file so download reruns keep the report visible.
+    import hashlib
+    upload_key = hashlib.sha256(uploaded.getvalue()).hexdigest()
+    if st.session_state.get("batch_upload_key") != upload_key:
+        st.session_state.pop("batch_results", None)
+        st.session_state["batch_upload_key"] = upload_key
 
     if st.button("🚀 Start Scan", type="primary"):
         progress = st.progress(0, text="Starting...")
@@ -51,11 +61,15 @@ if uploaded is not None:
         status.info(f"Scanning {len(df)} companies with {max_workers} workers...")
         results = scan_dataframe(df, max_workers=max_workers, delay=delay)
 
+        st.session_state["batch_results"] = results
         progress.progress(100, text="Done!")
         status.success(f"Scanned {len(results)} companies.")
 
+    results = st.session_state.get("batch_results")
+    if results is not None:
         st.subheader("Results")
-        st.dataframe(results, use_container_width=True)
+        st.caption("ATS boards are inferred from company names/domains; verify job evidence before treating a vendor mention as confirmed software use.")
+        st.dataframe(results.drop(columns=["job_evidence_json"], errors="ignore"), use_container_width=True)
 
         csv_bytes = results_to_csv_bytes(results)
         xlsx_bytes = results_to_excel_bytes(results)

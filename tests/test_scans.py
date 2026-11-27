@@ -70,7 +70,8 @@ class BatchTests(unittest.TestCase):
     @patch("batch.get_firmographics", return_value={})
     @patch("batch.get_hiring_signals", return_value={})
     @patch("batch.get_tech_stack", return_value={"error": "DNS failed", "detected": []})
-    def test_scan_error_is_visible(self, tech, hiring, firm):
+    @patch("batch.scan_technographics_free", return_value={})
+    def test_scan_error_is_visible(self, ats, tech, hiring, firm):
         result = scan_one({"company": "Acme", "domain": "https://example.com/about"})
         self.assertEqual(result["domain"], "example.com")
         self.assertEqual(result["error"], "DNS failed")
