@@ -1,4 +1,4 @@
-# 🔎 Company Intel
+# Company Intel
 
 A free, deployed technographic scanner. Feed it a company name + website, and it returns:
 
@@ -11,13 +11,13 @@ A free, deployed technographic scanner. Feed it a company name + website, and it
 
 ---
 
-## 🎯 What It Does
+## What It Does
 
 The tool combines four detection layers:
 
 | Layer | Source | Reliability |
 |---|---|---|
-| **Web tech stack** | DOM analysis + HTTP headers | High — no false positives |
+| **Web tech stack** | DOM analysis + HTTP headers | Heuristic — verify detected technologies |
 | **ATS detection** | Greenhouse / Lever / Ashby public APIs | High — when public ATS exists |
 | **Technographic vendors** | Job posting keyword matching | Medium–High — real evidence |
 | **Firmographics** | HTML text extraction + manual links | Low — often needs manual research |
@@ -26,7 +26,7 @@ Every result includes **evidence links** (the specific job posting that mentione
 
 ---
 
-## 🏆 Example: Formlabs
+## Example: Formlabs
 
 Input: `Formlabs` / `formlabs.com`
 
@@ -55,7 +55,7 @@ This is a **hardware 3D-printing company** — so finding CAD, PDM, ERP, and CRM
 
 ---
 
-## 🛠️ How It Works
+## How It Works
 
 ### 1. Web Tech Stack — DOM-based detection
 
@@ -65,7 +65,7 @@ Instead of naive text matching (`"shopify" in html`), the tool parses:
 - `<link href="...">` — catches framework fingerprints (`/_next/`, `/_nuxt/`)
 - **HTTP response headers** — catches CDNs (Cloudflare, CloudFront), servers (Nginx, Apache)
 
-This avoids false positives from customer logos, testimonials, and mentions in page copy.
+This reduces false positives from customer logos, testimonials, and mentions in page copy; detection is not definitive.
 
 ### 2. ATS Discovery — public API scraping
 
@@ -100,7 +100,7 @@ When extraction fails (most common case), it generates **direct search links** t
 
 ---
 
-## ⚠️ Honest Limitations
+## Honest Limitations
 
 This tool is **free** and runs on **Streamlit Cloud**. That means it's subject to limitations that commercial tools (ZoomInfo, 6sense, HG Insights) pay to solve:
 
@@ -115,7 +115,7 @@ This tool is **free** and runs on **Streamlit Cloud**. That means it's subject t
 
 ---
 
-## 🚀 Setup
+## Setup
 
 ### Run locally
 
@@ -147,7 +147,7 @@ Keep batches under 50 rows to avoid Streamlit Cloud timeouts.
 
 ---
 
-## 🧱 Tech Stack (of the tool itself)
+## Tech Stack (of the tool itself)
 
 | Component | Choice |
 |---|---|
@@ -163,7 +163,7 @@ Keep batches under 50 rows to avoid Streamlit Cloud timeouts.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Company-intel/
@@ -179,7 +179,7 @@ Company-intel/
 
 ---
 
-## 🧪 Sample Companies
+## Sample Companies
 
 | Company | Domain | What you'll see |
 |---|---|---|
@@ -193,7 +193,7 @@ Company-intel/
 
 ---
 
-## 🎓 What This Tool Teaches
+## What This Tool Teaches
 
 Building this tool demonstrates:
 
@@ -206,13 +206,13 @@ Building this tool demonstrates:
 
 ---
 
-## 📜 License
+## License
 
-MIT — do whatever you want with it.
+MIT — see the repository license.
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - [Streamlit](https://streamlit.io) for free hosting
 - [Greenhouse](https://developers.greenhouse.io), [Lever](https://github.com/lever/postings-api), [Ashby](https://developers.ashbyhq.com) for public ATS APIs
